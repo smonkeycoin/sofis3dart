@@ -17,6 +17,7 @@ type RaffleOrder = {
   amount: number;
   buyer_email: string | null;
   buyer_name: string | null;
+  confirmation_email_claimed_at: string | null;
   confirmation_email_sent_at: string | null;
   currency: string;
   id: string;
@@ -49,27 +50,35 @@ export async function POST(request: Request) {
     );
   }
 
-  if (
-    event.type !== "checkout.session.completed" &&
-    event.type !== "checkout.session.async_payment_succeeded"
-  ) {
-    return Response.json({ received: true });
-  }
-
-  const session = event.data.object as Stripe.Checkout.Session;
-
-  if (session.payment_status !== "paid") {
-    return Response.json({ received: true });
-  }
-
   try {
-    await confirmPrizeTicketPayment(session);
+    if (
+      event.type === "checkout.session.completed" ||
+      event.type === "checkout.session.async_payment_succeeded"
+    ) {
+      const session = event.data.object as Stripe.Checkout.Session;
+
+      if (session.payment_status === "paid") {
+        await confirmPrizeTicketPayment(session);
+      }
+    }
+
+    if (event.type === "checkout.session.expired") {
+      await expirePrizeTicketCheckout(event.data.object as Stripe.Checkout.Session);
+    }
+
+    if (event.type === "payment_intent.payment_failed") {
+      await recordPrizeTicketPaymentFailure(
+        event.data.object as Stripe.PaymentIntent,
+      );
+    }
+
     return Response.json({ received: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("Failed to process paid prize ticket checkout.", {
+    console.error("Failed to process Stripe prize webhook.", {
       error: message,
-      sessionId: session.id,
+      eventId: event.id,
+      eventType: event.type,
     });
 
     return Response.json({ error: message }, { status: 500 });
@@ -79,6 +88,7 @@ export async function POST(request: Request) {
 async function confirmPrizeTicketPayment(session: Stripe.Checkout.Session) {
   const supabase = createSupabaseServiceRoleClient();
   const metadata = session.metadata ?? {};
+  const orderId = getMetadataValue(metadata, ["order_id", "orderId"]);
   const ticketNumber = parseTicketNumber(metadata);
   const reservationId = getMetadataValue(metadata, [
     "reservation_id",
@@ -94,6 +104,14 @@ async function confirmPrizeTicketPayment(session: Stripe.Checkout.Session) {
     session.customer_email ??
     getMetadataValue(metadata, ["buyer_email", "buyerEmail"]);
   const paymentIntentId = getStripeId(session.payment_intent);
+
+  if (!orderId) {
+    throw new Error("Missing order_id in Stripe Checkout metadata.");
+  }
+
+  if (metadata.raffle_slug !== prizeRaffle.slug) {
+    throw new Error("Stripe Checkout metadata raffle_slug does not match.");
+  }
 
   if (!reservationId) {
     throw new Error("Missing reservation_id in Stripe Checkout metadata.");
@@ -111,6 +129,7 @@ async function confirmPrizeTicketPayment(session: Stripe.Checkout.Session) {
     currency,
     raffle_slug: prizeRaffle.slug,
     reservation_id: reservationId,
+    target_order_id: orderId,
     stripe_checkout_session_id: session.id,
     stripe_payment_intent_id: paymentIntentId,
     ticket_number: ticketNumber,
@@ -135,6 +154,45 @@ async function confirmPrizeTicketPayment(session: Stripe.Checkout.Session) {
   });
 }
 
+async function expirePrizeTicketCheckout(session: Stripe.Checkout.Session) {
+  const metadata = session.metadata ?? {};
+
+  if (metadata.raffle_slug !== prizeRaffle.slug) {
+    return;
+  }
+
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase.rpc("expire_raffle_checkout_session", {
+    stripe_checkout_session_id: session.id,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+async function recordPrizeTicketPaymentFailure(
+  paymentIntent: Stripe.PaymentIntent,
+) {
+  const metadata = paymentIntent.metadata ?? {};
+
+  if (metadata.raffle_slug !== prizeRaffle.slug) {
+    return;
+  }
+
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase.rpc("record_raffle_payment_failed", {
+    failure_message:
+      paymentIntent.last_payment_error?.message ?? "Payment failed.",
+    stripe_checkout_session_id: null,
+    stripe_payment_intent_id: paymentIntent.id,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 async function sendConfirmationEmailForOrder({
   buyerEmail,
   buyerName,
@@ -152,7 +210,7 @@ async function sendConfirmationEmailForOrder({
   const { data: order, error } = await supabase
     .from("raffle_orders")
     .select(
-      "id, amount, currency, buyer_email, buyer_name, confirmation_email_sent_at",
+      "id, amount, currency, buyer_email, buyer_name, confirmation_email_claimed_at, confirmation_email_sent_at",
     )
     .eq("id", orderId)
     .maybeSingle();
@@ -168,6 +226,21 @@ async function sendConfirmationEmailForOrder({
   const raffleOrder = order as RaffleOrder;
 
   if (raffleOrder.confirmation_email_sent_at) {
+    return;
+  }
+
+  const { data: claimed, error: claimError } = await supabase.rpc(
+    "claim_raffle_confirmation_email",
+    {
+      order_id: orderId,
+    },
+  );
+
+  if (claimError) {
+    throw new Error(claimError.message);
+  }
+
+  if (!claimed) {
     return;
   }
 
@@ -201,6 +274,7 @@ async function sendConfirmationEmailForOrder({
       .from("raffle_orders")
       .update({
         confirmation_email_failed_at: null,
+        confirmation_email_claimed_at: null,
         confirmation_email_last_error: null,
         confirmation_email_resend_id: email?.id ?? null,
         confirmation_email_sent_at: new Date().toISOString(),
@@ -233,8 +307,6 @@ async function sendConfirmationEmailForOrder({
       ticketId,
       ticketNumber,
     });
-
-    throw error;
   }
 }
 
@@ -276,6 +348,7 @@ async function recordConfirmationEmailFailure({
   await supabase
     .from("raffle_orders")
     .update({
+      confirmation_email_claimed_at: null,
       confirmation_email_failed_at: new Date().toISOString(),
       confirmation_email_last_error: errorMessage.slice(0, 1000),
     })

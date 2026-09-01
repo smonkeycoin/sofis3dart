@@ -7,6 +7,8 @@ import {
 } from "resend";
 
 const prizeAdminBccEnvVar = "PRIZE_ADMIN_BCC";
+const requiredSender = "SOFI'S 3D ART <prize@mail.sofis3d.art>";
+const requiredDomain = "mail.sofis3d.art";
 
 export function createResendClient() {
   const apiKey = process.env.RESEND_API_KEY;
@@ -21,9 +23,9 @@ export function createResendClient() {
 export function getResendFromEmail() {
   const fromEmail = process.env.RESEND_FROM_EMAIL;
 
-  if (!fromEmail) {
+  if (fromEmail !== requiredSender) {
     throw new Error(
-      "Missing RESEND_FROM_EMAIL. Verify the sending domain in Resend before setting the production sender.",
+      `EMAIL BLOCKED: RESEND_FROM_EMAIL must be exactly ${requiredSender}.`,
     );
   }
 
@@ -51,6 +53,8 @@ export async function sendPrizeParticipantTransactionalEmail(
   const resend = createResendClient();
   const from = getResendFromEmail();
 
+  await assertResendPrizeDomainVerified(resend);
+
   const email = {
     ...payload,
     bcc: mergeBcc(payload.bcc, getPrizeAdminBcc()),
@@ -58,6 +62,26 @@ export async function sendPrizeParticipantTransactionalEmail(
   } as CreateEmailOptions;
 
   return resend.emails.send(email, options);
+}
+
+async function assertResendPrizeDomainVerified(resend: Resend) {
+  const { data, error } = await resend.domains.list();
+
+  if (error) {
+    throw new Error(`EMAIL BLOCKED: ${error.message}`);
+  }
+
+  const domain = data?.data.find((item) => item.name === requiredDomain);
+
+  if (
+    !domain ||
+    domain.status !== "verified" ||
+    domain.capabilities?.sending !== "enabled"
+  ) {
+    throw new Error(
+      `EMAIL BLOCKED: ${requiredDomain} is not verified for sending in Resend.`,
+    );
+  }
 }
 
 function mergeBcc(existingBcc: CreateEmailOptions["bcc"], adminBcc: string) {
