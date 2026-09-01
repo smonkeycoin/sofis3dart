@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #252733;
+  --color-muted: #858895;
+  --color-soft-gray: #e8e8ee;
+  --color-brand-pink: #ec3b86;
+  --color-brand-purple: #7654e8;
+  --color-brand-yellow: #ffc71a;
+  --color-brand-green: #69c446;
+  --color-brand-blue: #39a8e8;
+  --color-pink-soft: #fff0f7;
+  --color-purple-soft: #f3efff;
+  --color-yellow-soft: #fff8dc;
+  --color-green-soft: #effbea;
+  --color-blue-soft: #edf8ff;
+  --color-hero-lilac: #f2e9ff;
+  --shadow-subtle: 0 8px 24px rgb(31 33 45 / 0.05);
+  --shadow-soft: 0 16px 42px rgb(31 33 45 / 0.1);
+  --shadow-pink: 0 10px 24px rgb(236 59 134 / 0.24);
+  --shadow-purple: 0 12px 26px rgb(118 84 232 / 0.25);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: #ffffff;
+  color: var(--color-ink);
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 84% 0%, rgb(236 59 134 / 0.035), transparent 24rem),
+    #ffffff;
+  font-family:
+    ui-rounded,
+    "Avenir Next",
+    "Nunito Sans",
+    "Inter",
+    system-ui,
+    sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+::selection {
+  background: var(--color-brand-pink);
+  color: white;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}

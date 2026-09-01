@@ -3,6 +3,8 @@ node_modules/
 out/
 dist/
 coverage/
+tsconfig.tsbuildinfo
+.qa/
 .env*
 !.env.example
 .DS_Store
