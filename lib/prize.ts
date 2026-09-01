@@ -8,7 +8,7 @@ export type PrizeTicket = {
 };
 
 export const prizeRaffle = {
-  slug: "apple-watch-se-3",
+  slug: "apple-watch-se-3-2026",
   name: "Rifa Apple Watch SE 3",
   prizeName: "Apple Watch SE 3",
   totalTickets: 50,
