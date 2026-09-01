@@ -6,7 +6,7 @@ import {
   prizeTicketConfirmationSubject,
   type PrizeTicketConfirmationProps,
 } from "@/emails/PrizeTicketConfirmation";
-import { createResendClient, getResendFromEmail } from "@/lib/email/resend";
+import { sendPrizeParticipantTransactionalEmail } from "@/lib/email/resend";
 
 export type SendPrizeTicketConfirmationInput =
   PrizeTicketConfirmationProps & {
@@ -19,12 +19,8 @@ export async function sendPrizeTicketConfirmation({
   to,
   ...props
 }: SendPrizeTicketConfirmationInput) {
-  const resend = createResendClient();
-  const from = getResendFromEmail();
-
-  const result = await resend.emails.send(
+  const result = await sendPrizeParticipantTransactionalEmail(
     {
-      from,
       to,
       subject: prizeTicketConfirmationSubject(props.ticketNumber),
       react: <PrizeTicketConfirmation {...props} />,

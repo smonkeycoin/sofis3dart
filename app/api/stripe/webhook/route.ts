@@ -212,6 +212,13 @@ async function sendConfirmationEmailForOrder({
       throw new Error(updateError.message);
     }
 
+    console.info("Prize ticket confirmation sent.", {
+      adminBcc: "configured",
+      participant: maskEmail(recipient),
+      resendMessageId: email?.id ?? null,
+      ticket: `#${ticketNumber}`,
+    });
+
     await recordConfirmationEmailSent({
       resendEmailId: email?.id ?? null,
       ticketId,
@@ -354,4 +361,14 @@ function getBuyerInitials(name: string | null) {
 
 function centsToPesos(amount: number) {
   return Math.round(amount / 100);
+}
+
+function maskEmail(email: string) {
+  const [localPart, domain] = email.split("@");
+
+  if (!localPart || !domain) {
+    return "[masked email]";
+  }
+
+  return `${localPart.slice(0, 2)}***@${domain}`;
 }
