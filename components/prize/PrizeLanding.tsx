@@ -5,13 +5,12 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
+  Camera,
   Check,
   Clock3,
   ExternalLink,
   Heart,
-  Instagram,
   LockKeyhole,
-  ShieldCheck,
   Sparkles,
   Star,
   Ticket,
@@ -58,11 +57,17 @@ function getCountdown(): Countdown {
   };
 }
 
-function CountdownUnit({ label, value }: { label: string; value: number }) {
+function CountdownUnit({
+  label,
+  value,
+}: {
+  label: string;
+  value: number | null;
+}) {
   return (
     <div className="min-w-0 rounded-[8px] bg-white/70 px-3 py-2 text-center shadow-subtle">
       <div className="text-xl font-black leading-none text-ink sm:text-2xl">
-        {value.toString().padStart(2, "0")}
+        {value === null ? "--" : value.toString().padStart(2, "0")}
       </div>
       <div className="mt-1 text-[0.62rem] font-black uppercase text-ink/58">
         {label}
@@ -129,15 +134,21 @@ function TicketButton({
 
 export function PrizeLanding() {
   const [selectedTicket, setSelectedTicket] = useState<PrizeTicket | null>(null);
-  const [countdown, setCountdown] = useState<Countdown>(() => getCountdown());
+  const [countdown, setCountdown] = useState<Countdown | null>(null);
   const tickets = initialPrizeTickets;
   const availableTickets = getAvailableTicketCount(tickets);
   const googleCalendarUrl = useMemo(() => buildGoogleCalendarUrl(), []);
   const icsHref = useMemo(() => buildIcsHref(), []);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setCountdown(getCountdown()), 1000);
-    return () => window.clearInterval(interval);
+    const updateCountdown = () => setCountdown(getCountdown());
+    const timeout = window.setTimeout(updateCountdown, 0);
+    const interval = window.setInterval(updateCountdown, 1000);
+
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+    };
   }, []);
 
   return (
@@ -212,7 +223,7 @@ export function PrizeLanding() {
               rel="noreferrer"
               target="_blank"
             >
-              <Instagram aria-hidden className="h-7 w-7 text-brand-pink" />
+              <Camera aria-hidden className="h-7 w-7 text-brand-pink" />
               <div>
                 <p className="text-xs font-bold text-ink/65">En vivo por</p>
                 <p className="text-xl font-black text-brand-pink">
@@ -339,10 +350,10 @@ export function PrizeLanding() {
                   ¡Gracias por ser parte de esto! ♡
                 </p>
                 <div className="mt-5 grid max-w-[410px] grid-cols-4 gap-2">
-                  <CountdownUnit label="dias" value={countdown.days} />
-                  <CountdownUnit label="horas" value={countdown.hours} />
-                  <CountdownUnit label="min" value={countdown.minutes} />
-                  <CountdownUnit label="seg" value={countdown.seconds} />
+                  <CountdownUnit label="dias" value={countdown?.days ?? null} />
+                  <CountdownUnit label="horas" value={countdown?.hours ?? null} />
+                  <CountdownUnit label="min" value={countdown?.minutes ?? null} />
+                  <CountdownUnit label="seg" value={countdown?.seconds ?? null} />
                 </div>
               </div>
               <div className="grid grid-cols-3 items-end gap-2">
@@ -392,10 +403,10 @@ export function PrizeLanding() {
                 Sorteo en
               </h2>
               <div className="mt-5 grid grid-cols-2 gap-2">
-                <CountdownUnit label="dias" value={countdown.days} />
-                <CountdownUnit label="horas" value={countdown.hours} />
-                <CountdownUnit label="min" value={countdown.minutes} />
-                <CountdownUnit label="seg" value={countdown.seconds} />
+                <CountdownUnit label="dias" value={countdown?.days ?? null} />
+                <CountdownUnit label="horas" value={countdown?.hours ?? null} />
+                <CountdownUnit label="min" value={countdown?.minutes ?? null} />
+                <CountdownUnit label="seg" value={countdown?.seconds ?? null} />
               </div>
               <div className="mt-5 grid gap-2">
                 <a

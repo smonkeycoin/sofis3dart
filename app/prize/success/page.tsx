@@ -1,20 +1,44 @@
 import Link from "next/link";
-import { CalendarDays, Instagram, Share2, Ticket } from "lucide-react";
+import { CalendarDays, Camera, Share2, Ticket } from "lucide-react";
 import {
   buildGoogleCalendarUrl,
   formatTicketNumber,
   prizeRaffle,
 } from "@/lib/prize";
 
-export default function PrizeSuccessPage() {
-  const ticketNumber = 17;
+type PrizeSuccessPageProps = {
+  searchParams: Promise<{
+    ticket?: string | string[];
+  }>;
+};
+
+function getTicketNumber(ticket?: string | string[]) {
+  const value = Array.isArray(ticket) ? ticket[0] : ticket;
+  const parsed = Number.parseInt(value ?? "", 10);
+
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > prizeRaffle.totalTickets) {
+    return null;
+  }
+
+  return parsed;
+}
+
+export default async function PrizeSuccessPage({
+  searchParams,
+}: PrizeSuccessPageProps) {
+  const params = await searchParams;
+  const ticketNumber = getTicketNumber(params.ticket);
+  const ticketLabel = ticketNumber ? formatTicketNumber(ticketNumber) : "--";
+  const shareUrl = `https://wa.me/?text=${encodeURIComponent(
+    `Estoy participando en la rifa Apple Watch SE 3 de SOFI'S 3D ART: ${prizeRaffle.canonicalUrl}`,
+  )}`;
 
   return (
     <main className="min-h-screen bg-white px-5 py-8 text-ink">
       <section className="mx-auto grid max-w-[720px] gap-6 rounded-[8px] border border-soft-gray bg-white p-6 text-center shadow-soft sm:p-9">
         <div>
           <p className="text-lg font-black text-brand-pink">
-            ¡El #{formatTicketNumber(ticketNumber)} es tuyo!
+            ¡El #{ticketLabel} es tuyo!
           </p>
           <h1 className="mt-3 text-4xl font-black tracking-normal">
             Rifa Apple Watch SE 3
@@ -22,7 +46,7 @@ export default function PrizeSuccessPage() {
         </div>
 
         <div className="mx-auto grid h-36 w-36 place-items-center rounded-[8px] bg-brand-purple text-6xl font-black text-white shadow-purple">
-          {formatTicketNumber(ticketNumber)}
+          {ticketLabel}
         </div>
 
         <dl className="grid gap-3 text-left sm:grid-cols-3">
@@ -62,16 +86,18 @@ export default function PrizeSuccessPage() {
             rel="noreferrer"
             target="_blank"
           >
-            <Instagram aria-hidden className="h-5 w-5" />
+            <Camera aria-hidden className="h-5 w-5" />
             Ver @luzelamx
           </a>
-          <button
+          <a
             className="flex h-12 items-center justify-center gap-2 rounded-lg border border-soft-gray px-4 font-black text-ink"
-            type="button"
+            href={shareUrl}
+            rel="noreferrer"
+            target="_blank"
           >
             <Share2 aria-hidden className="h-5 w-5" />
             Compartir la rifa
-          </button>
+          </a>
           <Link
             className="flex h-12 items-center justify-center gap-2 rounded-lg bg-brand-pink px-4 font-black text-white shadow-pink"
             href="/prize"
