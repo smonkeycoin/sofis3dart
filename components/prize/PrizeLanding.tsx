@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   Camera,
@@ -27,6 +27,7 @@ import {
   prizeRaffle,
   type PrizeTicket,
 } from "@/lib/prize";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Countdown = {
   days: number;
@@ -35,12 +36,45 @@ type Countdown = {
   seconds: number;
 };
 
+type PublicPrizeTicketRow = {
+  buyer_initials: string | null;
+  purchased_at: string | null;
+  raffle_slug: string;
+  status: PrizeTicket["status"];
+  ticket_number: number;
+};
+
 const statusLabels: Record<PrizeTicket["status"], string> = {
   AVAILABLE: "Disponible",
   HELD: "Reservado temporalmente",
   PAID: "Pagado",
   BLOCKED: "Bloqueado",
 };
+
+function ticketFromRow(row: PublicPrizeTicketRow): PrizeTicket {
+  return {
+    buyerInitials: row.buyer_initials ?? undefined,
+    number: row.ticket_number,
+    purchasedAt: row.purchased_at ?? undefined,
+    status: row.status,
+  };
+}
+
+function getPurchasedDateLabel(purchasedAt?: string) {
+  if (!purchasedAt) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("es-MX", {
+    day: "2-digit",
+    month: "short",
+    timeZone: prizeRaffle.timezone,
+    year: "numeric",
+  })
+    .format(new Date(purchasedAt))
+    .replace(".", "")
+    .toUpperCase();
+}
 
 function getCountdown(): Countdown {
   const remaining = Math.max(
@@ -86,14 +120,26 @@ function TicketButton({
   onSelect: (ticket: PrizeTicket) => void;
 }) {
   const ticketLabel = formatTicketNumber(ticket.number);
-  const disabled = ticket.status !== "AVAILABLE";
+  const canChoose = ticket.status === "AVAILABLE";
+  const paidDetails =
+    ticket.status === "PAID"
+      ? [
+          `Boleto #${ticketLabel}`,
+          `Comprado por ${ticket.buyerInitials ?? "X.X."}`,
+          getPurchasedDateLabel(ticket.purchasedAt),
+          "PAGADO ✓",
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : null;
 
   return (
     <button
       aria-label={
-        disabled
+        paidDetails ??
+        (!canChoose
           ? `Boleto ${ticketLabel}: ${statusLabels[ticket.status]}`
-          : `Elegir boleto ${ticketLabel}`
+          : `Elegir boleto ${ticketLabel}`)
       }
       className={[
         "group relative grid aspect-square min-h-[54px] place-items-center rounded-[8px] border text-xl font-black transition sm:min-h-[68px] sm:text-2xl",
@@ -104,16 +150,20 @@ function TicketButton({
           ? "cursor-not-allowed border-purple-soft bg-purple-soft text-brand-purple"
           : "",
         ticket.status === "PAID"
-          ? "cursor-not-allowed border-brand-purple bg-brand-purple text-white shadow-purple"
+          ? "border-brand-purple bg-brand-purple text-white shadow-purple hover:z-20"
           : "",
         ticket.status === "BLOCKED"
           ? "cursor-not-allowed border-neutral-200 bg-neutral-100 text-muted"
           : "",
-        selected ? "ring-4 ring-pink-soft" : "",
+        selected && canChoose ? "ring-4 ring-pink-soft" : "",
       ].join(" ")}
-      disabled={disabled}
-      onClick={() => onSelect(ticket)}
-      title={disabled ? statusLabels[ticket.status] : `Elegir #${ticketLabel}`}
+      disabled={ticket.status === "HELD" || ticket.status === "BLOCKED"}
+      onClick={() => {
+        if (canChoose) {
+          onSelect(ticket);
+        }
+      }}
+      title={paidDetails ?? (!canChoose ? statusLabels[ticket.status] : `Elegir #${ticketLabel}`)}
       type="button"
     >
       {ticket.status === "HELD" ? (
@@ -128,6 +178,11 @@ function TicketButton({
           Elegir
         </span>
       ) : null}
+      {paidDetails ? (
+        <span className="pointer-events-none absolute left-1/2 top-[calc(100%+8px)] z-30 hidden w-44 -translate-x-1/2 whitespace-pre-line rounded-[8px] bg-ink px-3 py-2 text-center text-[0.68rem] font-black leading-snug text-white shadow-soft group-hover:block group-focus-visible:block">
+          {paidDetails}
+        </span>
+      ) : null}
     </button>
   );
 }
@@ -135,10 +190,31 @@ function TicketButton({
 export function PrizeLanding() {
   const [selectedTicket, setSelectedTicket] = useState<PrizeTicket | null>(null);
   const [countdown, setCountdown] = useState<Countdown | null>(null);
-  const tickets = initialPrizeTickets;
+  const [tickets, setTickets] = useState<PrizeTicket[]>(initialPrizeTickets);
+  const [checkoutState, setCheckoutState] = useState<"idle" | "loading">("idle");
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const availableTickets = getAvailableTicketCount(tickets);
   const googleCalendarUrl = useMemo(() => buildGoogleCalendarUrl(), []);
   const icsHref = useMemo(() => buildIcsHref(), []);
+
+  const refreshTickets = useCallback(async () => {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("public_raffle_ticket_states")
+        .select("raffle_slug, ticket_number, status, buyer_initials, purchased_at")
+        .eq("raffle_slug", prizeRaffle.slug)
+        .order("ticket_number", { ascending: true });
+
+      if (error || !data) {
+        return;
+      }
+
+      setTickets((data as PublicPrizeTicketRow[]).map(ticketFromRow));
+    } catch {
+      setTickets(initialPrizeTickets);
+    }
+  }, []);
 
   useEffect(() => {
     const updateCountdown = () => setCountdown(getCountdown());
@@ -150,6 +226,98 @@ export function PrizeLanding() {
       window.clearInterval(interval);
     };
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+
+      void supabase
+        .from("public_raffle_ticket_states")
+        .select("raffle_slug, ticket_number, status, buyer_initials, purchased_at")
+        .eq("raffle_slug", prizeRaffle.slug)
+        .order("ticket_number", { ascending: true })
+        .then(({ data }) => {
+          if (isMounted && data) {
+            setTickets((data as PublicPrizeTicketRow[]).map(ticketFromRow));
+          }
+        });
+
+      const channel = supabase
+        .channel("prize-public-ticket-state")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            filter: `raffle_slug=eq.${prizeRaffle.slug}`,
+            schema: "public",
+            table: "public_raffle_ticket_states",
+          },
+          (payload) => {
+            const row = payload.new as PublicPrizeTicketRow | null;
+
+            if (!row || row.raffle_slug !== prizeRaffle.slug) {
+              return;
+            }
+
+            setTickets((currentTickets) =>
+              currentTickets.map((ticket) =>
+                ticket.number === row.ticket_number ? ticketFromRow(row) : ticket,
+              ),
+            );
+          },
+        )
+        .subscribe();
+
+      return () => {
+        isMounted = false;
+        void supabase.removeChannel(channel);
+      };
+    } catch {
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, []);
+
+  async function startCheckout() {
+    if (!selectedTicket || checkoutState === "loading") {
+      return;
+    }
+
+    setCheckoutState("loading");
+    setCheckoutError(null);
+
+    try {
+      const response = await fetch("/api/prize/checkout", {
+        body: JSON.stringify({ ticketNumber: selectedTicket.number }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const data = (await response.json()) as {
+        checkoutUrl?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !data.checkoutUrl) {
+        if (response.status === 409) {
+          await refreshTickets();
+        }
+
+        throw new Error(data.error ?? "No pudimos iniciar Checkout TEST.");
+      }
+
+      window.location.assign(data.checkoutUrl);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "No pudimos iniciar Checkout TEST.";
+      setCheckoutError(message);
+      setCheckoutState("idle");
+    }
+  }
 
   return (
     <main className="min-h-screen bg-white text-ink">
@@ -467,13 +635,21 @@ export function PrizeLanding() {
                   </p>
                 </div>
                 <button
-                  className="h-12 rounded-lg bg-ink px-5 text-sm font-black text-white opacity-70"
-                  disabled
+                  className="h-12 rounded-lg bg-ink px-5 text-sm font-black text-white transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70"
+                  disabled={checkoutState === "loading"}
+                  onClick={startCheckout}
                   type="button"
                 >
-                  Checkout TEST pendiente
+                  {checkoutState === "loading"
+                    ? "Reservando..."
+                    : "Ir a Checkout TEST"}
                 </button>
               </div>
+              {checkoutError ? (
+                <p className="mt-3 text-sm font-black text-brand-pink">
+                  {checkoutError}
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>

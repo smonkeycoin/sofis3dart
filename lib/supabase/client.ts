@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
+let browserClient: ReturnType<typeof createClient> | null = null;
+
 export function createSupabaseBrowserClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -8,5 +10,7 @@ export function createSupabaseBrowserClient() {
     throw new Error("Missing public Supabase environment variables.");
   }
 
-  return createClient(supabaseUrl, supabasePublishableKey);
+  browserClient ??= createClient(supabaseUrl, supabasePublishableKey);
+
+  return browserClient;
 }

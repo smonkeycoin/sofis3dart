@@ -186,6 +186,7 @@ async function recordPrizeTicketPaymentFailure(
       paymentIntent.last_payment_error?.message ?? "Payment failed.",
     stripe_checkout_session_id: null,
     stripe_payment_intent_id: paymentIntent.id,
+    target_order_id: getMetadataValue(metadata, ["order_id", "orderId"]),
   });
 
   if (error) {
