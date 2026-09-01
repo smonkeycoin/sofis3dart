@@ -169,7 +169,7 @@ export function PrizeLanding() {
               fill
               priority
               sizes="(max-width: 1024px) 260px, 280px"
-              src="/prize/apple-watch-se-3.png"
+              src="/prize/apple-watch-se-3-transparent.png"
             />
           </div>
 
