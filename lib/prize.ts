@@ -17,6 +17,7 @@ export const prizeRaffle = {
   currency: "MXN",
   drawDateLabel: "15 OCT 2026",
   drawTimeLabel: "8:00 PM",
+  drawTimeZoneLabel: "Cancun",
   timezone: "America/Cancun",
   drawAtIso: "2026-10-16T01:00:00.000Z",
   instagramHandle: "@luzelamx",

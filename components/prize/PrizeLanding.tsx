@@ -210,7 +210,7 @@ export function PrizeLanding() {
                   {prizeRaffle.drawDateLabel}
                 </p>
                 <p className="text-sm font-bold text-ink/75">
-                  {prizeRaffle.drawTimeLabel} (CDMX)
+                  {prizeRaffle.drawTimeLabel} ({prizeRaffle.drawTimeZoneLabel})
                 </p>
                 <p className="mt-2 text-xs font-black uppercase text-brand-pink">
                   Agregar a calendario
@@ -268,7 +268,7 @@ export function PrizeLanding() {
                   {prizeRaffle.drawDateLabel}
                 </p>
                 <p className="mt-1 text-lg font-extrabold">
-                  {prizeRaffle.drawTimeLabel} (CDMX)
+                  {prizeRaffle.drawTimeLabel} ({prizeRaffle.drawTimeZoneLabel})
                 </p>
               </div>
               <a
