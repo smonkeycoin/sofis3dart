@@ -51,6 +51,9 @@ const statusLabels: Record<PrizeTicket["status"], string> = {
   BLOCKED: "Bloqueado",
 };
 
+const checkoutStartError =
+  "No pudimos iniciar el pago. Tu boleto sigue disponible. Intenta nuevamente.";
+
 function ticketFromRow(row: PublicPrizeTicketRow): PrizeTicket {
   return {
     buyerInitials: row.buyer_initials ?? undefined,
@@ -307,13 +310,12 @@ export function PrizeLanding() {
           await refreshTickets();
         }
 
-        throw new Error(data.error ?? "No pudimos iniciar Checkout TEST.");
+        throw new Error(checkoutStartError);
       }
 
       window.location.assign(data.checkoutUrl);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "No pudimos iniciar Checkout TEST.";
+      const message = error instanceof Error ? error.message : checkoutStartError;
       setCheckoutError(message);
       setCheckoutState("idle");
     }
@@ -642,7 +644,7 @@ export function PrizeLanding() {
                 >
                   {checkoutState === "loading"
                     ? "Reservando..."
-                    : "Ir a Checkout TEST"}
+                    : `Comprar boleto #${formatTicketNumber(selectedTicket.number)}`}
                 </button>
               </div>
               {checkoutError ? (

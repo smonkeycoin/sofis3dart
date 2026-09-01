@@ -22,6 +22,9 @@ type PendingOrderForCleanup = {
   ticket_id: string;
 };
 
+const checkoutStartError =
+  "No pudimos iniciar el pago. Tu boleto sigue disponible. Intenta nuevamente.";
+
 function getPrizeUrl() {
   return process.env.NEXT_PUBLIC_PRIZE_URL || prizeRaffle.canonicalUrl;
 }
@@ -70,10 +73,8 @@ export async function POST(request: Request) {
   const stripePriceId = process.env.STRIPE_PRIZE_PRICE_ID;
 
   if (!stripePriceId) {
-    return Response.json(
-      { error: "Stripe TEST Checkout is not configured." },
-      { status: 500 },
-    );
+    console.error("Prize checkout is not configured.");
+    return Response.json({ error: checkoutStartError }, { status: 500 });
   }
 
   const supabase = createSupabaseServiceRoleClient();
@@ -160,16 +161,13 @@ export async function POST(request: Request) {
       supabase,
     });
 
-    console.error("Stripe TEST Checkout could not be created.", {
+    console.error("Prize checkout session could not be created.", {
       error: message,
       orderId: order.order_id,
       ticketNumber,
     });
 
-    return Response.json(
-      { error: "Stripe TEST Checkout could not be created." },
-      { status: 502 },
-    );
+    return Response.json({ error: checkoutStartError }, { status: 502 });
   }
 
   const { error: checkoutError } = await supabase.rpc(
