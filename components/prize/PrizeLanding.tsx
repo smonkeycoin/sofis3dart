@@ -14,9 +14,9 @@ import {
   Sparkles,
   Star,
   Ticket,
-  Video,
 } from "lucide-react";
 import { Wordmark } from "@/components/brand/Wordmark";
+import { PrizeFooterVideo } from "@/components/prize/PrizeFooterVideo";
 import {
   buildGoogleCalendarUrl,
   buildIcsHref,
@@ -602,20 +602,7 @@ export function PrizeLanding() {
             <h2 className="text-2xl font-black tracking-normal">
               Conoce el sueño detrás de esta rifa
             </h2>
-            <div className="mt-5 grid min-h-[260px] place-items-center rounded-[8px] bg-neutral-100 text-center">
-              <div>
-                <Video
-                  aria-hidden
-                  className="mx-auto h-12 w-12 text-brand-purple"
-                />
-                <p className="mt-4 text-lg font-black text-ink">
-                  Video de Sofia
-                </p>
-                <p className="mt-1 text-sm font-bold text-ink/62">
-                  Proximamente
-                </p>
-              </div>
-            </div>
+            <PrizeFooterVideo />
             <a
               className="mt-5 inline-flex h-12 items-center rounded-lg bg-brand-pink px-5 font-black text-white shadow-pink transition hover:-translate-y-0.5"
               href="#tickets"
