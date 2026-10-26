@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import { PrizeLanding } from "@/components/prize/PrizeLanding";
 import { prizeRaffle } from "@/lib/prize";
 
-const prizeShareTitle = "Rifa Apple Watch SE 3 | SOFI'S 3D ART";
+const prizeShareTitle = "¡Tenemos ganador! #34 | SOFI'S 3D ART";
 const prizeShareDescription =
-  "Elige tu número. Solo 50 boletos a $347 MXN. Sorteo en vivo el 15 de octubre de 2026 a las 8:00 PM por @luzelamx.";
-const prizeShareImageUrl = `${prizeRaffle.canonicalUrl}/prize/og-prize-apple-watch-se3.jpg`;
+  "¡Felicidades al boleto #34! Gracias por apoyar el emprendimiento de Sofía.";
+const prizeShareImageUrl = `${prizeRaffle.canonicalUrl}/prize/sofia-avatar.png`;
 const prizeShareImageAlt =
-  "Rifa Apple Watch SE 3 de SOFI'S 3D ART — 50 boletos a $347 MXN";
+  "Sofía con su llavero 3D — gracias por apoyar SOFI'S 3D ART";
 
 export const metadata: Metadata = {
   metadataBase: new URL(prizeRaffle.canonicalUrl),
@@ -27,8 +27,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: prizeShareImageUrl,
-        width: 1200,
-        height: 630,
+        width: 384,
+        height: 314,
         alt: prizeShareImageAlt,
       },
     ],

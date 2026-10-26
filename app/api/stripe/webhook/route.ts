@@ -2,6 +2,7 @@ import { sendPrizeTicketConfirmation } from "@/lib/email/send-prize-ticket-confi
 import { buildGoogleCalendarUrl, prizeRaffle } from "@/lib/prize";
 import { createStripeClient } from "@/lib/stripe";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { isVerifiedHistoricalPayment } from "@/lib/verified-raffle-payment";
 import type Stripe from "stripe";
 
 export const runtime = "nodejs";
@@ -119,6 +120,32 @@ async function confirmPrizeTicketPayment(session: Stripe.Checkout.Session) {
 
   if (!amount || !currency) {
     throw new Error("Stripe Checkout session is missing amount or currency.");
+  }
+
+  // The payment RPC requires ACTIVE. A closed raffle can acknowledge only an
+  // exact replay of an already recorded payment, without changing its history.
+  const { data: historicalOrder, error: historicalOrderError } = await supabase
+    .from("raffle_orders")
+    .select("id, raffle_id, ticket_id, status, reservation_id, stripe_checkout_session_id, stripe_payment_intent_id, amount, currency")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (historicalOrderError) throw new Error(historicalOrderError.message);
+
+  if (historicalOrder?.status === "PAID") {
+    const [{ data: historicalTicket, error: ticketError }, { data: historicalRaffle, error: raffleError }] = await Promise.all([
+      supabase.from("raffle_tickets")
+        .select("id, raffle_id, ticket_number, status, stripe_checkout_session_id, stripe_payment_intent_id")
+        .eq("id", historicalOrder.ticket_id).maybeSingle(),
+      supabase.from("raffles").select("id, slug, status")
+        .eq("id", historicalOrder.raffle_id).maybeSingle(),
+    ]);
+    if (ticketError || raffleError) throw new Error("Could not verify historical raffle payment.");
+    if (isVerifiedHistoricalPayment({
+      order: historicalOrder, ticket: historicalTicket, raffle: historicalRaffle,
+      expected: { orderId, reservationId, sessionId: session.id, paymentIntentId,
+        ticketNumber, amount, currency, raffleSlug: prizeRaffle.slug },
+    })) return;
   }
 
   const { data, error } = await supabase.rpc("mark_raffle_ticket_paid", {
@@ -263,8 +290,8 @@ async function sendConfirmationEmailForOrder({
       amountMXN: centsToPesos(raffleOrder.amount),
       buyerName: resolvedBuyerName,
       calendarUrl: buildGoogleCalendarUrl(),
-      drawDate: "15 de octubre de 2026",
-      drawTime: "8:00 PM",
+      drawDate: prizeRaffle.drawDateLabel,
+      drawTime: `${prizeRaffle.drawTimeLabel} (${prizeRaffle.drawTimeZoneLabel})`,
       idempotencyKey: `prize-ticket-confirmation/${orderId}`,
       instagramUrl: prizeRaffle.instagramUrl,
       ticketNumber,

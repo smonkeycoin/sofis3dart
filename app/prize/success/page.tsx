@@ -143,9 +143,9 @@ export default async function PrizeSuccessPage({
           <div className="rounded-[8px] bg-purple-soft p-4">
             <dt className="text-xs font-black uppercase text-ink/55">Sorteo</dt>
             <dd className="mt-1 text-lg font-black text-brand-purple">
-              15 OCT 2026
+              {prizeRaffle.drawDateLabel}
               <br />
-              8:00 PM
+              {prizeRaffle.drawTimeLabel} ({prizeRaffle.drawTimeZoneLabel})
             </dd>
           </div>
           <div className="rounded-[8px] bg-yellow-soft p-4">

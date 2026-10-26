@@ -1,0 +1,13 @@
+# Local operational evidence and secrets must never enter a deployment bundle.
+.qa/
+audits/
+operations/*
+!operations/close-raffle.cjs
+scripts/
+/supabase/
+design-reference/
+.env*
+*.tsbuildinfo
+AVATAR.png
+BRANDING.png
+LANDING.png

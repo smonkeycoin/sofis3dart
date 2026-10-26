@@ -15,11 +15,11 @@ export const prizeRaffle = {
   ticketPriceCents: 34700,
   ticketPriceLabel: "$347 MXN",
   currency: "MXN",
-  drawDateLabel: "15 OCT 2026",
+  drawDateLabel: "25 de octubre de 2026",
   drawTimeLabel: "8:00 PM",
   drawTimeZoneLabel: "Cancun",
   timezone: "America/Cancun",
-  drawAtIso: "2026-10-16T01:00:00.000Z",
+  drawAtIso: "2026-10-26T01:00:00.000Z",
   instagramHandle: "@luzelamx",
   instagramUrl: "https://instagram.com/luzelamx",
   canonicalUrl: "https://prize.sofis3d.art",
@@ -65,7 +65,7 @@ export function buildGoogleCalendarUrl() {
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: "RIFA APPLE WATCH SE 3 - SOFI'S 3D ART",
-    dates: "20261016T010000Z/20261016T020000Z",
+    dates: `${calendarTimestamp(prizeRaffle.drawAtIso)}/${calendarTimestamp(new Date(Date.parse(prizeRaffle.drawAtIso) + 3600000).toISOString())}`,
     ctz: prizeRaffle.timezone,
     details:
       "Rifa en vivo del Apple Watch SE 3 de SOFI'S 3D ART.\n\nLa transmision sera realizada en Instagram:\n@luzelamx\nhttps://instagram.com/luzelamx",
@@ -83,8 +83,8 @@ export function buildIcsHref() {
     "BEGIN:VEVENT",
     "UID:sofis-3d-art-prize-apple-watch-se-3-20261015@sofis3d.art",
     "DTSTAMP:20260901T000000Z",
-    "DTSTART:20261016T010000Z",
-    "DTEND:20261016T020000Z",
+    `DTSTART:${calendarTimestamp(prizeRaffle.drawAtIso)}`,
+    `DTEND:${calendarTimestamp(new Date(Date.parse(prizeRaffle.drawAtIso) + 3600000).toISOString())}`,
     "SUMMARY:RIFA APPLE WATCH SE 3 - SOFI'S 3D ART",
     "DESCRIPTION:Rifa en vivo del Apple Watch SE 3 de SOFI'S 3D ART.\\n\\nLa transmision sera realizada en Instagram:\\n@luzelamx\\nhttps://instagram.com/luzelamx",
     "LOCATION:Instagram Live - @luzelamx",
@@ -93,4 +93,8 @@ export function buildIcsHref() {
   ].join("\r\n");
 
   return `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
+}
+
+function calendarTimestamp(iso: string) {
+  return iso.replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
 }
