@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { PrizeLanding } from "@/components/prize/PrizeLanding";
 import { prizeRaffle } from "@/lib/prize";
 
-const prizeShareTitle = "¡Tenemos ganador! #34 | SOFI'S 3D ART";
+const prizeShareTitle = "¡El Apple Watch todavía busca ganador! | SOFI'S 3D ART";
 const prizeShareDescription =
-  "¡Felicidades al boleto #34! Gracias por apoyar el emprendimiento de Sofía.";
+  "Nuevo sorteo: domingo 1 de noviembre de 2026, 7:00 PM, hora de Cancún. El número 34 del primer sorteo no había sido vendido. Consulta tu boleto y la aclaración.";
 const prizeShareImageUrl = `${prizeRaffle.canonicalUrl}/prize/sofia-avatar.png`;
 const prizeShareImageAlt =
   "Sofía con su llavero 3D — gracias por apoyar SOFI'S 3D ART";

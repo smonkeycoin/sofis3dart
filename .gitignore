@@ -1,5 +1,6 @@
 .next/
 node_modules/
+/node_modules
 out/
 dist/
 coverage/
@@ -13,3 +14,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .vercel
+
+# Private audit evidence and campaign recipients
+audits/
+operations/**/*.json
+operations/**/*.html
+operations/**/*.txt
