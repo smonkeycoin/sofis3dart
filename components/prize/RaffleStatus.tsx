@@ -5,7 +5,7 @@ import { Check, Clock3 } from "lucide-react";
 import { formatTicketNumber, prizeRaffle } from "@/lib/prize";
 import { publicTicketStates, type PublicTicket } from "@/lib/public-raffle-state";
 
-const labels = { PAID: "Vendido", AVAILABLE: "Disponible · ventas cerradas", HELD: "Reservado", BLOCKED: "No elegible" };
+const labels = { PAID: "Vendido", AVAILABLE: "Sin vender · ventas cerradas", HELD: "Reservado", BLOCKED: "No elegible" };
 const colors = {
   PAID: "border-brand-purple bg-brand-purple text-white shadow-purple",
   AVAILABLE: "border-soft-gray bg-white text-ink shadow-subtle",
@@ -39,12 +39,12 @@ export function RaffleTickets() {
   }, [retry]);
   return (
     <section aria-labelledby="tickets-heading" className="mt-6 scroll-mt-5 rounded-[8px] border border-soft-gray bg-white p-4 shadow-soft sm:p-5" id="tickets">
-      <h2 className="text-xl font-black sm:text-2xl" id="tickets-heading">Consulta tu boleto</h2>
-      <p className="mt-2 text-sm font-semibold text-ink/65">Tus números se conservan. Las ventas permanecen cerradas.</p>
+      <h2 className="text-xl font-black sm:text-2xl" id="tickets-heading">Registro histórico de boletos</h2>
+      <p className="mt-2 text-sm font-semibold text-ink/65">Los números y sus estados se conservan. El sorteo concluyó y las ventas permanecen cerradas.</p>
       {tickets ? <>
         <div className="my-5 flex flex-wrap gap-x-4 gap-y-2 text-sm font-bold" aria-label="Resumen de boletos">
           <span className="text-brand-purple">{tickets.filter(t => t.status === "PAID").length} vendidos</span>
-          <span>{tickets.filter(t => t.status === "AVAILABLE").length} disponibles</span>
+          <span>{tickets.filter(t => t.status === "AVAILABLE").length} sin vender</span>
           <span>{tickets.filter(t => t.status === "HELD").length} reservados</span>
           <span>{tickets.filter(t => t.status !== "PAID").length} sin pago confirmado</span>
         </div>
@@ -55,7 +55,7 @@ export function RaffleTickets() {
             <span aria-hidden="true">{formatTicketNumber(ticket.ticket_number)}</span>
           </li>)}
         </ol>
-        <p className="mt-4 text-xs font-semibold leading-relaxed text-ink/65">Morado: vendido · Blanco: disponible, sin venta habilitada · Lila: reservado · Gris: no elegible. Los boletos sin pago confirmado no están incluidos en la propuesta del nuevo padrón.</p>
+        <p className="mt-4 text-xs font-semibold leading-relaxed text-ink/65">Morado: vendido · Blanco: sin vender · Lila: reservado · Gris: no elegible. Solo los boletos con pago confirmado participaron en el resultado.</p>
       </> : <div className="mt-5 text-sm font-semibold" role="status">{failed ? <>No pudimos verificar los estados. <button className="font-bold text-brand-purple underline" onClick={() => setRetry(n => n + 1)} type="button">Reintentar</button></> : "Consultando los estados de tus boletos…"}</div>}
     </section>
   );

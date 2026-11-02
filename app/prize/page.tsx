@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import { PrizeLanding } from "@/components/prize/PrizeLanding";
 import { prizeRaffle } from "@/lib/prize";
 
-const prizeShareTitle = "¡El Apple Watch todavía busca ganador! | SOFI'S 3D ART";
+const prizeShareTitle = "¡Tenemos ganador! Apple Watch SE 3 | SOFI'S 3D ART";
 const prizeShareDescription =
-  "Nuevo sorteo: domingo 1 de noviembre de 2026, 7:00 PM, hora de Cancún. El número 34 del primer sorteo no había sido vendido. Consulta tu boleto y la aclaración.";
+  "Felicitamos a Benjamín Iglesias Meyer, ganador del Apple Watch SE 3 con el boleto #13. Gracias por apoyar el emprendimiento de Sofía.";
 const prizeShareImageUrl = `${prizeRaffle.canonicalUrl}/prize/sofia-avatar.png`;
 const prizeShareImageAlt =
-  "Sofía con su llavero 3D — gracias por apoyar SOFI'S 3D ART";
+  "Avatar original de Sofía — SOFI'S 3D ART";
 
 export const metadata: Metadata = {
   metadataBase: new URL(prizeRaffle.canonicalUrl),
